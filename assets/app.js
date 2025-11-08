@@ -6,26 +6,26 @@
   };
   const TEXT = {
     en:{
-      hint: "Type a name in English. Results come from a static JSON file (client-side only).",
+      hint: "Type a name in English. Results come from a static JSON file.",
       placeholder: "Search... (e.g., 'multimeter', 'alarm clock', 'knife')",
       th_title: "Title",
       th_item: "Item",
       th_loc: "Location",
       meta_source: "Source: furusetalle9.oslo.no",
       meta_db_prefix: "DB: ",
-      meta_privacy: "No tracking • client-side only",
+      meta_privacy:
       empty: "—",
       db_missing: "⚠ Language database missing — create db/inventory.en.json and db/inventory.no.json"
     },
     no:{
-      hint: "Skriv et navn på norsk. Resultatene hentes fra en statisk JSON-fil (kun i nettleseren).",
+      hint: "Skriv et navn på norsk. Resultatene hentes fra en statisk JSON-fil",
       placeholder: "Søk... (f.eks. 'multimeter', 'vekkerklokke', 'kniv')",
       th_title: "Tittel",
       th_item: "Gjenstand",
       th_loc: "Plassering",
       meta_source: "Kilde: furusetalle9.oslo.no",
       meta_db_prefix: "DB: ",
-      meta_privacy: "Ingen sporing • kun i nettleseren",
+      meta_privacy:
       empty: "—",
       db_missing: "⚠ Mangler database for språk — lag db/inventory.en.json og db/inventory.no.json"
     }

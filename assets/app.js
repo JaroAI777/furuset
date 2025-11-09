@@ -1,130 +1,131 @@
-(function(){
-  const $ = (s)=>document.querySelector(s);
-  const state = {
-    lang: localStorage.getItem('lang') || 'en',
-    db:{ en: null, no: null }
-  };
-  const TEXT = {
-    en:{
-      hint: "Type a name in English. Results come from a static JSON file (client-side only).",
-      placeholder: "Search... (e.g., 'multimeter', 'alarm clock', 'knife')",
-      th_title: "Title",
-      th_item: "Item",
-      th_loc: "Location",
-      meta_source: "Source: furusetalle9.oslo.no",
-      meta_db_prefix: "DB: ",
-      meta_privacy: "No tracking • client-side only",
-      empty: "—",
-      db_missing: "⚠ Language database missing — create db/inventory.en.json and db/inventory.no.json"
+(() => {
+  const $ = (s) => document.querySelector(s);
+
+  // ── UI teksty
+  const L10N = {
+    en: {
+      subtitle: 'Type a name in English. Results come from a static JSON file (client-side only).',
+      placeholder: 'Search... (e.g., "multimeter", "alarm clock", "knife")',
+      thTitle: 'Title', thItem: 'Item', thLocation: 'Location',
+      status: (lang) => `Source: furusetalle9.oslo.no • DB: db/inventory.${lang}.json • No tracking • client-side only`
     },
-    no:{
-      hint: "Skriv et navn på norsk. Resultatene hentes fra en statisk JSON-fil (kun i nettleseren).",
-      placeholder: "Søk... (f.eks. 'multimeter', 'vekkerklokke', 'kniv')",
-      th_title: "Tittel",
-      th_item: "Gjenstand",
-      th_loc: "Plassering",
-      meta_source: "Kilde: furusetalle9.oslo.no",
-      meta_db_prefix: "DB: ",
-      meta_privacy: "Ingen sporing • kun i nettleseren",
-      empty: "—",
-      db_missing: "⚠ Mangler database for språk — lag db/inventory.en.json og db/inventory.no.json"
+    no: {
+      subtitle: 'Skriv et navn på norsk. Resultater kommer fra en statisk JSON-fil (kun i nettleseren).',
+      placeholder: 'Søk... (f.eks. "multimeter", "vekkerklokke", "kniv")',
+      thTitle: 'Tittel', thItem: 'Gjenstand', thLocation: 'Plassering',
+      status: (lang) => `Kilde: furusetalle9.oslo.no • DB: db/inventory.${lang}.json • Ingen sporing • kun klient`
     }
   };
 
-  function applyLang(){
-    const t = TEXT[state.lang];
-    $('#hint').textContent = t.hint;
-    $('#q').placeholder = t.placeholder;
-    $('#th-title').textContent = t.th_title;
-    $('#th-item').textContent = t.th_item;
-    $('#th-location').textContent = t.th_loc;
-    $('#foot-source').textContent = t.meta_source;
-    $('#foot-privacy').textContent = t.meta_privacy;
-    $('#btn-en').classList.toggle('active', state.lang==='en');
-    $('#btn-no').classList.toggle('active', state.lang==='no');
-  }
-
-  async function loadDB(lang){
-    const url = lang==='en' ? 'db/inventory.en.json' : 'db/inventory.no.json';
-    $('#foot-db').textContent = `${(TEXT[state.lang]||TEXT.en).meta_db_prefix}${url}`;
-    try{
-      const res = await fetch(`${url}?v=${Date.now()}`);
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      state.db[lang] = data;
-      return data;
-    }catch(e){
-      const t = TEXT[state.lang] || TEXT.en;
-      const tbody = $('#tbody');
-      tbody.innerHTML = `<tr class="placeholder"><td colspan="3">${t.db_missing}</td></tr>`;
-      return [];
+  // ── Synonimy funkcjonalne (NO/EN) – proste rozszerzenia zapytań
+  const SYN = {
+    en: {
+      multimeter: ['multimeter','voltmeter','ammeter','tester','test meter'],
+      voltmeter: ['voltmeter','multimeter','tester'],
+      ammeter: ['ammeter','multimeter','tester'],
+      scissors: ['scissors','knife','box cutter','utility knife','tapetkniv','saks'],
+      knife: ['knife','box cutter','utility knife','tapetkniv','saks','scissors'],
+      tape: ['tape','duct tape','pvc tape','teflon tape','aluminium tape','teip','teflontape','pvc-tape','aluminiumstape'],
+      glue: ['glue','adhesive','contact glue','epoxy','lim','kontaktlim','epoxy'],
+      saw: ['saw','coping saw','hacksaw','sag','metallsag'],
+      alarm: ['alarm','alarm clock','vekkerklokke','clock'],
+      clock: ['clock','alarm clock','vekkerklokke']
+    },
+    no: {
+      multimeter: ['multimeter','voltmeter','ammeter','måleinstrument','tester'],
+      voltmeter: ['voltmeter','multimeter','tester'],
+      ammeter: ['ammeter','multimeter','tester'],
+      saks: ['saks','kniv','tapetkniv','box cutter','scissors'],
+      kniv: ['kniv','tapetkniv','box cutter','saks','scissors'],
+      teip: ['teip','tape','teflontape','pvc-tape','aluminiumstape'],
+      lim: ['lim','kontaktlim','epoxy','limpistol','glue'],
+      sag: ['sag','metallsag','copingsag','håndsag','saw'],
+      vekkerklokke: ['vekkerklokke','alarm','alarmklokke','clock']
     }
+  };
+
+  // ── stan
+  let lang = (localStorage.getItem('furuset_lang') || 'en');
+  const state = { db: [], lang };
+
+  // ── narzędzia
+  const normalize = (s='') => s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const tokenize  = (s='') => normalize(s).split(/\s+/).filter(Boolean);
+  const escapeHtml = (s='') => s.replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+  function applyL10n() {
+    const t = L10N[state.lang];
+    $('#subtitle').innerHTML = t.subtitle;
+    const q = $('#q'); q.placeholder = t.placeholder;
+    $('#th-title').textContent = t.thTitle;
+    $('#th-item').textContent = t.thItem;
+    $('#th-location').textContent = t.thLocation;
+    $('#status').textContent = t.status(state.lang);
+    document.documentElement.setAttribute('data-lang', state.lang);
   }
 
-  function normalize(s){
-    return (s||"").normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
+  function dbUrl() { return `db/inventory.${state.lang}.json?v=${Date.now()}`; }
+
+  async function loadDB() {
+    const url = dbUrl();
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+    const data = await res.json();
+    state.db = Array.isArray(data) ? data : [];
+    update();
   }
 
-  function scoreRecord(rec, qset){
-    const fields = [rec.box_title, rec.item, rec.location].map(normalize);
-    let score = 0;
-    qset.forEach(q=>fields.forEach(f=>{ if(f.includes(q)) score++; }));
-    const item = fields[1];
-    qset.forEach(q=>{ if(item.includes(q)) score++; });
-    return score;
-  }
-
-  function escapeHTML(s){
-    return (s||"").replace(/[&<>"]/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;", '"':"&quot;" }[c]));
-  }
-
-  function renderRows(rows){
-    const t = TEXT[state.lang] || TEXT.en;
-    const tbody = $('#tbody');
-    if(!rows.length){
-      tbody.innerHTML = `<tr class="placeholder"><td colspan="3">${t.empty}</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = rows.map(r=>{
-      const title = escapeHTML(r.box_title || "");
-      const item  = escapeHTML(r.item || "");
-      const loc   = escapeHTML(r.location || "");
-      return `<tr><td>${title}</td><td>${item}</td><td>${loc || '—'}</td></tr>`;
-    }).join("");
-  }
-
-  function onInput(){
-    const qraw = $('#q').value;
-    const qnorm = (window.SYNSETS && window.SYNSETS.normalize) ? window.SYNSETS.normalize(qraw) : normalize(qraw);
-    let qset = [qnorm];
-    if(window.SYNSETS && window.SYNSETS.expand){
-      qset = window.SYNSETS.expand(qraw);
-    }
-    const data = state.db[state.lang] || [];
-    const rows = data
-      .map(r=>({rec:r, score: scoreRecord(r, qset)}))
-      .filter(x=>x.score>0 || qnorm.trim()==="")
-      .sort((a,b)=> b.score - a.score || String(a.rec.item).localeCompare(String(b.rec.item)))
-      .slice(0, 500)
-      .map(x=>x.rec);
-    renderRows(rows);
-  }
-
-  async function init(){
-    applyLang();
-    $('#btn-en').addEventListener('click', async ()=>{
-      state.lang='en'; localStorage.setItem('lang','en'); applyLang();
-      if(!state.db.en) await loadDB('en'); onInput();
+  // Rozszerz zapytanie o synonimy: AND po słowach, OR po synonimach danego słowa
+  function expandQuery(q) {
+    const toks = tokenize(q);
+    const dict = SYN[state.lang] || {};
+    return toks.map(t => {
+      const set = new Set([t]);
+      for (const [k, arr] of Object.entries(dict)) {
+        if (k === t || arr.includes(t)) { arr.forEach(x => set.add(normalize(x))); set.add(normalize(k)); }
+      }
+      return Array.from(set);
     });
-    $('#btn-no').addEventListener('click', async ()=>{
-      state.lang='no'; localStorage.setItem('lang','no'); applyLang();
-      if(!state.db.no) await loadDB('no'); onInput();
-    });
-    $('#clear').addEventListener('click', ()=>{ $('#q').value=''; $('#q').focus(); onInput(); });
-    $('#q').addEventListener('input', onInput);
-    await loadDB(state.lang);
-    onInput();
-    $('#q').focus();
   }
-  document.addEventListener('DOMContentLoaded', init);
+
+  function recordMatches(rec, expansions) {
+    const hay = normalize(`${rec.item||''} ${rec.box_title||''} ${rec.location||''}`);
+    return expansions.every(group => group.some(term => hay.includes(term)));
+  }
+
+  function renderRows(rows) {
+    const tb = $('#tbody'); tb.innerHTML = '';
+    if (!rows.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="3" class="empty">—</td>`;
+      tb.appendChild(tr); return;
+    }
+    for (const r of rows) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td class="box">${escapeHtml(r.box_title||'')}</td>
+         <td class="item">${escapeHtml(r.item||'')}</td>
+         <td class="loc">${escapeHtml(r.location||'')}</td>`;
+      tb.appendChild(tr);
+    }
+  }
+
+  function update() {
+    const q = $('#q').value.trim();
+    const data = state.db || [];
+    if (!q) { renderRows(data.slice(0,200)); return; }
+    const expanded = expandQuery(q);
+    const result = data.filter(r => recordMatches(r, expanded)).slice(0,200);
+    renderRows(result);
+  }
+
+  // ── UI
+  $('#flag-en').addEventListener('click', () => { state.lang='en'; localStorage.setItem('furuset_lang','en'); applyL10n(); loadDB().catch(console.error); });
+  $('#flag-no').addEventListener('click', () => { state.lang='no'; localStorage.setItem('furuset_lang','no'); applyL10n(); loadDB().catch(console.error); });
+  $('#q').addEventListener('input', update);
+  $('#btn-clear').addEventListener('click', ()=>{ $('#q').value=''; update(); });
+
+  // start
+  applyL10n();
+  loadDB().catch(console.error);
 })();
